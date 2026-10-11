@@ -1,0 +1,29 @@
+{
+  "name": "peel",
+  "version": "0.1.0",
+  "description": "Minimalist open-source AI image background remover & alpha matting engine",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsc && node dist/index.js",
+    "dev": "tsc && node dist/index.js"
+  },
+  "keywords": [
+    "background-removal",
+    "remove-bg",
+    "rembg",
+    "image-matting",
+    "alpha-matte",
+    "webgpu",
+    "rmbg",
+    "birefnet",
+    "open-source"
+  ],
+  "author": "Lex",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "typescript": "^5.7.3"
+  }
+}

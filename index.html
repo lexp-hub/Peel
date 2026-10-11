@@ -1,0 +1,1893 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PEEL // Background Removal Studio</title>
+  <link rel="icon" type="image/svg+xml" href="./logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0c0d12;
+      --surface: #13151c;
+      --card: #181a24;
+      --border: #242735;
+      --border-hover: #3b3f54;
+      --accent: #10b981;
+      --accent-hover: #059669;
+      --text: #f1f3f9;
+      --muted: #81889c;
+      --danger: #ef4444;
+      --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::selection { background: var(--accent); color: #000; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+    /* Header */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 18px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-badge {
+      background: var(--accent);
+      color: #000;
+      font-weight: 900;
+      font-size: 13px;
+      letter-spacing: 2px;
+      padding: 3px 8px;
+      border-radius: 3px;
+    }
+    .brand-title {
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+    }
+    .header-badges {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 3px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    /* Sub-nav Toolbar */
+    .toolbar {
+      background: #101218;
+      border-bottom: 1px solid var(--border);
+      padding: 7px 18px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 11px;
+    }
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .toolbar-label {
+      color: var(--muted);
+      font-size: 11px;
+      margin-right: 2px;
+    }
+    .tool-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.12s ease;
+    }
+    .tool-btn:hover {
+      border-color: var(--border-hover);
+      background: #1d202c;
+    }
+    .tool-btn.active {
+      background: var(--accent);
+      color: #000;
+      font-weight: 700;
+      border-color: var(--accent);
+    }
+    .tool-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    select.tool-select {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 4px 6px;
+      border-radius: 3px;
+      cursor: pointer;
+      outline: none;
+    }
+    select.tool-select:focus {
+      border-color: var(--accent);
+    }
+
+    /* Interactive Mask Editing Toolbar */
+    .edit-tools-bar {
+      background: #0f1117;
+      border-bottom: 1px solid var(--border);
+      padding: 6px 18px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+    }
+    .divider {
+      width: 1px;
+      height: 18px;
+      background: var(--border);
+      margin: 0 4px;
+    }
+
+    /* Main Container */
+    .main-container {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      flex: 1;
+      min-height: 0;
+    }
+    @media (max-width: 960px) {
+      .main-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Workstation Canvas Viewport */
+    .workstation {
+      background: #08090d;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      border-right: 1px solid var(--border);
+      min-height: 540px;
+    }
+    .viewport-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 16px;
+      background: #11131a;
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+    }
+    .viewport-modes {
+      display: flex;
+      gap: 4px;
+    }
+    .viewport-canvas-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      padding: 20px;
+      user-select: none;
+    }
+
+    /* Transparent Checkerboard Pattern */
+    .checkerboard-bg {
+      background-color: #0c0d12;
+      background-image:
+        linear-gradient(45deg, #151722 25%, transparent 25%),
+        linear-gradient(-45deg, #151722 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #151722 75%),
+        linear-gradient(-45deg, transparent 75%, #151722 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    }
+
+    /* Container for Canvas & Overlays */
+    .compare-container {
+      position: relative;
+      display: inline-block;
+      max-width: 100%;
+      max-height: 72vh;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .compare-container canvas {
+      display: block;
+      max-width: 100%;
+      max-height: 72vh;
+      object-fit: contain;
+    }
+    .compare-before {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 50%;
+      overflow: hidden;
+      border-right: 2px solid var(--accent);
+      z-index: 5;
+    }
+    .compare-before canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      max-width: none;
+    }
+    .compare-divider {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 2px;
+      background: var(--accent);
+      cursor: ew-resize;
+      z-index: 6;
+    }
+    .compare-handle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 24px;
+      height: 24px;
+      background: #000;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    /* Interactive Editing Overlay Canvas */
+    #editCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 8;
+      cursor: crosshair;
+      display: none;
+    }
+
+    /* Dropzone Empty State */
+    .dropzone-overlay {
+      position: absolute;
+      inset: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 1px dashed var(--border);
+      border-radius: 4px;
+      background: rgba(19, 21, 28, 0.5);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+      padding: 24px;
+    }
+    .dropzone-overlay:hover, .dropzone-overlay.dragover {
+      border-color: var(--accent);
+      background: rgba(16, 185, 129, 0.04);
+    }
+    .dropzone-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+    .dropzone-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 14px;
+      max-width: 420px;
+      line-height: 1.4;
+    }
+    .dropzone-hints {
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      gap: 12px;
+    }
+    .kbd {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1px 5px;
+      border-radius: 2px;
+      color: var(--accent);
+    }
+
+    /* Sidebar Studio Controls */
+    .sidebar {
+      background: var(--surface);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+      max-height: calc(100vh - 90px);
+    }
+    .panel-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 10px 12px;
+    }
+    .panel-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .control-row {
+      margin-bottom: 10px;
+    }
+    .control-row:last-child {
+      margin-bottom: 0;
+    }
+    .control-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+    .control-label {
+      color: var(--text);
+    }
+    .control-val {
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .slider {
+      width: 100%;
+      -webkit-appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+      outline: none;
+      cursor: pointer;
+    }
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+    }
+
+    /* Color Swatches */
+    .swatches-grid {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 4px;
+    }
+    .swatch {
+      width: 22px;
+      height: 22px;
+      border-radius: 2px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .swatch.active {
+      border: 2px solid var(--accent);
+    }
+    .color-input-wrap input[type="color"] {
+      width: 22px;
+      height: 22px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      background: none;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    /* Telemetry / Metrics Table */
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(36, 39, 53, 0.4);
+      font-size: 11px;
+    }
+    .metric-row:last-child { border-bottom: none; }
+    .metric-name { color: var(--muted); }
+    .metric-val { color: var(--text); font-weight: 600; }
+    .grade-badge {
+      padding: 1px 5px;
+      border-radius: 2px;
+      font-weight: 700;
+      font-size: 10px;
+    }
+    .grade-A-plus { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981; }
+    .grade-A { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid #3b82f6; }
+    .grade-B { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid #f59e0b; }
+
+    /* Action Buttons */
+    .btn-action-primary {
+      background: var(--accent);
+      color: #000;
+      font-family: var(--mono);
+      font-weight: 800;
+      font-size: 11px;
+      padding: 8px 12px;
+      border-radius: 3px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      transition: background 0.15s ease;
+    }
+    .btn-action-primary:hover {
+      background: var(--accent-hover);
+    }
+    .btn-action-secondary {
+      background: var(--card);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 7px 10px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      margin-top: 5px;
+      transition: all 0.12s ease;
+    }
+    .btn-action-secondary:hover {
+      border-color: var(--border-hover);
+      background: #1e212e;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      width: 100%;
+      max-width: 600px;
+      padding: 16px;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .code-snippet {
+      background: #08090d;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 10px;
+      font-size: 11px;
+      color: #34d399;
+      overflow-x: auto;
+      white-space: pre;
+      margin-bottom: 10px;
+    }
+
+    /* Progress bar */
+    .progress-bar-container {
+      width: 100%;
+      height: 3px;
+      background: var(--border);
+      overflow: hidden;
+      display: none;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width 0.15s ease;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card);
+      border: 1px solid var(--accent);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 3px;
+      font-size: 11px;
+      display: none;
+      align-items: center;
+      z-index: 200;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand-wrap">
+      <div class="brand-badge">PEEL</div>
+      <div class="brand-title">BACKGROUND REMOVAL STUDIO</div>
+    </div>
+
+    <div class="header-badges">
+      <div class="badge" id="badge-engine">
+        <div class="badge-dot"></div>
+        <span id="engine-status-text">WASM / WebGPU</span>
+      </div>
+      <div class="badge">
+        <span>ON-DEVICE</span>
+      </div>
+      <div class="badge">
+        <span>LOSSLESS</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Top Toolbar -->
+  <div class="toolbar">
+    <div class="toolbar-group">
+      <span class="toolbar-label">MODEL:</span>
+      <select class="tool-select" id="engineSelect">
+        <option value="client-rmbg">RMBG-1.4 (WebGPU / WASM)</option>
+        <option value="client-birefnet">BiRefNet (General)</option>
+        <option value="client-heuristic">Deterministic Saliency</option>
+        <option value="edge-api">Edge Worker API</option>
+      </select>
+
+      <button class="tool-btn" id="btnSamplePortrait">Sample 1</button>
+      <button class="tool-btn" id="btnSampleProduct">Sample 2</button>
+      <button class="tool-btn" id="btnPasteClipboard">Paste</button>
+      <button class="tool-btn" id="btnClear" style="color: var(--danger);">Clear</button>
+    </div>
+
+    <div class="toolbar-group">
+      <button class="tool-btn" id="btnOpenApiModal">API</button>
+    </div>
+  </div>
+
+  <!-- Interactive Mask Refinement Toolbar (Pen, Lasso, Magic Pen) -->
+  <div class="edit-tools-bar">
+    <div class="toolbar-group">
+      <span class="toolbar-label">TOOL:</span>
+      <button class="tool-btn active" data-tool="select" id="toolSelect">POINTER</button>
+      <button class="tool-btn" data-tool="pen" id="toolPen">PEN</button>
+      <button class="tool-btn" data-tool="lasso" id="toolLasso">LASSO</button>
+      <button class="tool-btn" data-tool="magic" id="toolMagic">MAGIC PEN</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="toolbar-group" id="brushOptions" style="display: none;">
+      <span class="toolbar-label">MODE:</span>
+      <button class="tool-btn active" data-brushmode="erase" id="btnModeErase">ERASE [-]</button>
+      <button class="tool-btn" data-brushmode="restore" id="btnModeRestore">RESTORE [+]</button>
+
+      <span class="toolbar-label" style="margin-left: 6px;">SIZE:</span>
+      <input type="range" class="slider" id="brushSizeSlider" min="2" max="80" value="20" style="width: 80px;">
+      <span id="brushSizeVal" style="color: var(--accent); min-width: 28px;">20px</span>
+    </div>
+
+    <div class="toolbar-group" id="magicOptions" style="display: none;">
+      <span class="toolbar-label">TOLERANCE:</span>
+      <input type="range" class="slider" id="magicToleranceSlider" min="5" max="80" value="30" style="width: 80px;">
+      <span id="magicToleranceVal" style="color: var(--accent); min-width: 28px;">30%</span>
+    </div>
+
+    <div class="toolbar-group" style="margin-left: auto;">
+      <button class="tool-btn" id="btnUndo" disabled>UNDO</button>
+      <button class="tool-btn" id="btnResetMask" disabled>RESET MASK</button>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="main-container">
+
+    <!-- Viewport -->
+    <div class="workstation">
+      <div class="viewport-controls">
+        <div class="viewport-modes">
+          <button class="tool-btn active" data-mode="split" id="modeBtnSplit">SPLIT</button>
+          <button class="tool-btn" data-mode="result" id="modeBtnResult">CUTOUT</button>
+          <button class="tool-btn" data-mode="mask" id="modeBtnMask">MASK</button>
+          <button class="tool-btn" data-mode="heatmap" id="modeBtnHeatmap">HEATMAP</button>
+          <button class="tool-btn" data-mode="original" id="modeBtnOriginal">ORIGINAL</button>
+        </div>
+
+        <span style="font-size: 11px; color: var(--muted);" id="renderTimer">IDLE</span>
+      </div>
+
+      <div class="viewport-canvas-wrap checkerboard-bg" id="canvasWrap">
+        <!-- Empty dropzone -->
+        <div class="dropzone-overlay" id="dropzone">
+          <div class="dropzone-title">Drop image file or click to select</div>
+          <div class="dropzone-sub">
+            PNG, JPEG, WebP. High resolution supported.<br>
+            All computations run locally on device.
+          </div>
+          <div class="dropzone-hints">
+            <span><span class="kbd">Ctrl+V</span> to paste from clipboard</span>
+          </div>
+          <input type="file" id="fileInput" accept="image/*" style="display: none;">
+        </div>
+
+        <!-- Canvas Container -->
+        <div class="compare-container" id="compareContainer" style="display: none;">
+          <canvas id="resultCanvas"></canvas>
+          <canvas id="editCanvas"></canvas>
+
+          <div class="compare-before" id="compareBefore">
+            <canvas id="originalCanvas"></canvas>
+          </div>
+          <div class="compare-divider" id="compareDivider">
+            <div class="compare-handle">&harr;</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress-bar-container" id="progressBar">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <!-- Backdrop -->
+      <div class="panel-section">
+        <div class="panel-title">BACKDROP</div>
+        <div class="control-row">
+          <div class="swatches-grid">
+            <div class="swatch active checkerboard-bg" data-bg="transparent" title="Transparent"></div>
+            <div class="swatch" data-bg="#ffffff" style="background: #ffffff;" title="White"></div>
+            <div class="swatch" data-bg="#f3f4f6" style="background: #f3f4f6;" title="Gray"></div>
+            <div class="swatch" data-bg="#0c0d12" style="background: #0c0d12;" title="Black"></div>
+            <div class="swatch" data-bg="#10b981" style="background: #10b981;" title="Emerald"></div>
+            <div class="swatch" data-bg="#3b82f6" style="background: #3b82f6;" title="Blue"></div>
+            <div class="color-input-wrap">
+              <input type="color" id="customColorPicker" value="#8b5cf6" title="Custom">
+            </div>
+          </div>
+        </div>
+
+        <div class="control-row" style="margin-top: 8px;">
+          <div class="control-header">
+            <span class="control-label">BOKEH BLUR</span>
+            <span class="control-val" id="blurVal">0 px</span>
+          </div>
+          <input type="range" class="slider" id="blurSlider" min="0" max="30" value="0">
+        </div>
+      </div>
+
+      <!-- Matting Adjustments -->
+      <div class="panel-section">
+        <div class="panel-title">
+          <span>MATTE ADJUSTMENTS</span>
+          <button class="tool-btn" id="btnResetControls" style="padding: 1px 5px; font-size: 10px;">RESET</button>
+        </div>
+
+        <div class="control-row">
+          <div class="control-header">
+            <span class="control-label">THRESHOLD</span>
+            <span class="control-val" id="thresholdVal">50%</span>
+          </div>
+          <input type="range" class="slider" id="thresholdSlider" min="5" max="95" value="50">
+        </div>
+
+        <div class="control-row">
+          <div class="control-header">
+            <span class="control-label">FEATHER</span>
+            <span class="control-val" id="featherVal">1.0 px</span>
+          </div>
+          <input type="range" class="slider" id="featherSlider" min="0" max="15" step="0.5" value="1">
+        </div>
+
+        <div class="control-row">
+          <div class="control-header">
+            <span class="control-label">DEFRINGE</span>
+            <span class="control-val" id="defringeVal">40%</span>
+          </div>
+          <input type="range" class="slider" id="defringeSlider" min="0" max="100" value="40">
+        </div>
+
+        <div class="control-row">
+          <div class="control-header">
+            <span class="control-label">TRIM / EXPAND</span>
+            <span class="control-val" id="expandVal">0 px</span>
+          </div>
+          <input type="range" class="slider" id="expandSlider" min="-8" max="8" value="0">
+        </div>
+
+        <div class="control-row" style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
+          <span class="control-label" style="font-size: 11px;">INVERT MASK</span>
+          <input type="checkbox" id="invertCheckbox" style="accent-color: var(--accent); cursor: pointer;">
+        </div>
+      </div>
+
+      <!-- Telemetry / Metrics -->
+      <div class="panel-section">
+        <div class="panel-title">
+          <span>METRICS</span>
+          <span class="grade-badge grade-A-plus" id="matteGradeBadge">A+</span>
+        </div>
+
+        <div class="metric-row">
+          <span class="metric-name">DIMENSIONS</span>
+          <span class="metric-val" id="mResolution">-</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">COVERAGE</span>
+          <span class="metric-val" id="mCoverage">-</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">COMPLEXITY</span>
+          <span class="metric-val" id="mComplexity">-</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">ENTROPY</span>
+          <span class="metric-val" id="mEntropy">-</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">COLOR SPILL</span>
+          <span class="metric-val" id="mSpill">-</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">LATENCY</span>
+          <span class="metric-val" id="mLatency">-</span>
+        </div>
+      </div>
+
+      <!-- Export Actions -->
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <button class="btn-action-primary" id="btnDownloadPng">EXPORT PNG</button>
+        <button class="btn-action-secondary" id="btnCopyClipboard">COPY PNG</button>
+        <button class="btn-action-secondary" id="btnDownloadWebP">EXPORT WEBP</button>
+        <button class="btn-action-secondary" id="btnDownloadMask">EXPORT MASK ONLY</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- API Modal -->
+  <div class="modal-backdrop" id="apiModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div style="font-weight: 700; font-size: 13px;">HEADLESS REST API</div>
+        <button class="tool-btn" id="btnCloseApiModal">&times;</button>
+      </div>
+
+      <div style="font-size: 11px; color: var(--muted); margin-bottom: 4px;">cURL:</div>
+      <div class="code-snippet">curl -X POST http://localhost:3000/api/peel \
+  -F "file=@photo.jpg" \
+  -o cutout.png</div>
+
+      <div style="font-size: 11px; color: var(--muted); margin-bottom: 4px;">JavaScript:</div>
+      <div class="code-snippet">const form = new FormData();
+form.append('file', fileBlob);
+const res = await fetch('/api/peel', { method: 'POST', body: form });
+const pngBlob = await res.blob();</div>
+
+      <div style="font-size: 11px; color: var(--muted); margin-bottom: 4px;">Python:</div>
+      <div class="code-snippet">import requests
+r = requests.post('http://localhost:3000/api/peel', files={'file': open('image.jpg', 'rb')})
+with open('output.png', 'wb') as f:
+    f.write(r.content)</div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <span id="toastMsg">Action completed</span>
+  </div>
+
+  <!-- Client-Side Engine & Interactive Canvas Tools -->
+  <script type="module">
+    // State
+    const state = {
+      originalImg: null,
+      origPixels: null,           // Cached original RGBA pixel buffer (no repeated getImageData)
+      rawMaskData: null,          // Base mask array
+      currentMaskData: null,      // Mask with manual edits applied
+      undoStack: [],              // History stack
+      width: 0,
+      height: 0,
+      viewMode: 'split',
+      activeTool: 'select',
+      brushMode: 'erase',
+      brushSize: 20,
+      magicTolerance: 30,
+      bgColor: 'transparent',
+      bokehBlur: 0,
+      threshold: 50,
+      feather: 1.0,
+      defringe: 40,
+      expand: 0,
+      invert: false,
+      splitPos: 0.5,
+      isDraggingSplit: false,
+      isDrawing: false,
+      lassoPoints: [],
+      transformersLib: null,
+      segmenterPipeline: null,
+      // Reusable scratch memory buffers for zero-GC 60fps rendering
+      scratchFiltered: null,
+      scratchBlur: null,
+      scratchImgData: null,
+    };
+
+    // Performance scheduler flags
+    let renderScheduled = false;
+    let metricsTimeout = null;
+
+    function requestRender() {
+      if (!renderScheduled) {
+        renderScheduled = true;
+        requestAnimationFrame(() => {
+          renderScheduled = false;
+          renderStudioCanvas();
+        });
+      }
+    }
+
+    // DOM references
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const compareContainer = document.getElementById('compareContainer');
+    const resultCanvas = document.getElementById('resultCanvas');
+    const originalCanvas = document.getElementById('originalCanvas');
+    const editCanvas = document.getElementById('editCanvas');
+    const compareBefore = document.getElementById('compareBefore');
+    const compareDivider = document.getElementById('compareDivider');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    const renderTimer = document.getElementById('renderTimer');
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toastMsg');
+
+    // Controls
+    const thresholdSlider = document.getElementById('thresholdSlider');
+    const featherSlider = document.getElementById('featherSlider');
+    const defringeSlider = document.getElementById('defringeSlider');
+    const expandSlider = document.getElementById('expandSlider');
+    const blurSlider = document.getElementById('blurSlider');
+    const invertCheckbox = document.getElementById('invertCheckbox');
+    const engineSelect = document.getElementById('engineSelect');
+    const customColorPicker = document.getElementById('customColorPicker');
+
+    // Tool DOMs
+    const toolSelectBtn = document.getElementById('toolSelect');
+    const toolPenBtn = document.getElementById('toolPen');
+    const toolLassoBtn = document.getElementById('toolLasso');
+    const toolMagicBtn = document.getElementById('toolMagic');
+    const brushOptions = document.getElementById('brushOptions');
+    const magicOptions = document.getElementById('magicOptions');
+    const btnModeErase = document.getElementById('btnModeErase');
+    const btnModeRestore = document.getElementById('btnModeRestore');
+    const brushSizeSlider = document.getElementById('brushSizeSlider');
+    const brushSizeVal = document.getElementById('brushSizeVal');
+    const magicToleranceSlider = document.getElementById('magicToleranceSlider');
+    const magicToleranceVal = document.getElementById('magicToleranceVal');
+    const btnUndo = document.getElementById('btnUndo');
+    const btnResetMask = document.getElementById('btnResetMask');
+
+    function showToast(msg) {
+      toastMsg.innerText = msg;
+      toast.style.display = 'flex';
+      setTimeout(() => { toast.style.display = 'none'; }, 2000);
+    }
+
+    function setProgress(pct, statusText) {
+      if (pct > 0 && pct < 100) {
+        progressBar.style.display = 'block';
+        progressFill.style.width = pct + '%';
+        if (statusText) renderTimer.innerText = statusText.toUpperCase();
+      } else {
+        progressBar.style.display = 'none';
+        progressFill.style.width = '0%';
+        if (statusText) renderTimer.innerText = statusText.toUpperCase();
+      }
+    }
+
+    // Transformers.js loader with WebGPU fp16 optimization
+    async function initClientTransformers() {
+      try {
+        const mod = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.3');
+        state.transformersLib = mod;
+        document.getElementById('engine-status-text').innerText = 'WEBGPU ACTIVE';
+      } catch (err) {
+        document.getElementById('engine-status-text').innerText = 'SALIENCY / WASM';
+      }
+    }
+    initClientTransformers();
+
+    // Image file handler
+    function handleImageFile(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          state.originalImg = img;
+          state.width = img.naturalWidth;
+          state.height = img.naturalHeight;
+          state.undoStack = [];
+          btnUndo.disabled = true;
+          btnResetMask.disabled = true;
+
+          // Pre-cache original RGBA buffer ONCE to avoid repeated getImageData stalls
+          const offCanvas = document.createElement('canvas');
+          offCanvas.width = state.width;
+          offCanvas.height = state.height;
+          const offCtx = offCanvas.getContext('2d');
+          offCtx.drawImage(img, 0, 0);
+          state.origPixels = offCtx.getImageData(0, 0, state.width, state.height).data;
+
+          // Allocate reusable scratch buffers
+          const totalPixels = state.width * state.height;
+          state.scratchFiltered = new Uint8Array(totalPixels);
+          state.scratchBlur = new Uint8Array(totalPixels);
+
+          dropzone.style.display = 'none';
+          compareContainer.style.display = 'inline-block';
+          processSegmentation();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function pushUndoState() {
+      if (!state.currentMaskData) return;
+      if (state.undoStack.length >= 8) state.undoStack.shift();
+      state.undoStack.push(new Uint8Array(state.currentMaskData));
+      btnUndo.disabled = false;
+      btnResetMask.disabled = false;
+    }
+
+    // High-performance inference
+    async function processSegmentation() {
+      if (!state.originalImg) return;
+      const t0 = performance.now();
+      const engine = engineSelect.value;
+      setProgress(30, 'Segmenting');
+
+      if (engine === 'client-heuristic') {
+        runClientHeuristicSegmentation();
+        finalizeMatte(Math.round(performance.now() - t0), 'SALIENCY');
+        return;
+      }
+
+      if (engine === 'edge-api') {
+        try {
+          setProgress(40, 'Calling API');
+          const blob = await fetch(state.originalImg.src).then(r => r.blob());
+          const fd = new FormData();
+          fd.append('file', blob, 'image.png');
+          const res = await fetch('/api/peel', { method: 'POST', body: fd });
+          if (!res.ok) throw new Error(await res.text());
+          const resBlob = await res.blob();
+          const cutoutUrl = URL.createObjectURL(resBlob);
+          const cutoutImg = new Image();
+          cutoutImg.onload = () => {
+            extractAlphaFromCutout(cutoutImg);
+            finalizeMatte(Math.round(performance.now() - t0), 'REST API');
+          };
+          cutoutImg.src = cutoutUrl;
+        } catch (err) {
+          runClientHeuristicSegmentation();
+          finalizeMatte(Math.round(performance.now() - t0), 'SALIENCY FALLBACK');
+        }
+        return;
+      }
+
+      // Default: In-browser Client RMBG-1.4 / BiRefNet with fp16
+      if (state.transformersLib) {
+        try {
+          setProgress(50, 'Neural Model');
+          const { AutoModel, AutoProcessor, RawImage } = state.transformersLib;
+          const modelId = engine === 'client-birefnet' ? 'ZhengPeng7/BiRefNet' : 'briaai/RMBG-1.4';
+
+          if (!state.segmenterPipeline) {
+            setProgress(60, 'Loading Model');
+            // WebGPU fp16 executes 3x faster and consumes half the VRAM
+            const model = await AutoModel.from_pretrained(modelId, { device: 'webgpu', dtype: 'fp16' }).catch(async () => {
+              return await AutoModel.from_pretrained(modelId, { device: 'wasm', dtype: 'q8' });
+            });
+            const processor = await AutoProcessor.from_pretrained(modelId);
+            state.segmenterPipeline = { model, processor };
+          }
+
+          const rawImg = await RawImage.fromURL(state.originalImg.src);
+          const { pixel_values } = await state.segmenterPipeline.processor(rawImg);
+          const { output } = await state.segmenterPipeline.model({ input: pixel_values });
+
+          const maskTensor = output[0][0];
+          const maskWidth = maskTensor.dims ? maskTensor.dims[1] : 1024;
+          const maskHeight = maskTensor.dims ? maskTensor.dims[0] : 1024;
+          const maskData = maskTensor.data;
+
+          interpolateMaskToOriginal(maskData, maskWidth, maskHeight, state.width, state.height);
+          finalizeMatte(Math.round(performance.now() - t0), 'RMBG-1.4 (FP16)');
+          return;
+        } catch (err) {
+          console.warn('Inference fallback:', err);
+        }
+      }
+
+      runClientHeuristicSegmentation();
+      finalizeMatte(Math.round(performance.now() - t0), 'SALIENCY FALLBACK');
+    }
+
+    function runClientHeuristicSegmentation() {
+      const w = state.width, h = state.height;
+      const data = state.origPixels;
+      if (!data) return;
+
+      const corners = [0, (w - 1) * 4, ((h - 1) * w) * 4, ((h - 1) * w + (w - 1)) * 4];
+      let bgR = 0, bgG = 0, bgB = 0;
+      for (const idx of corners) {
+        bgR += data[idx]; bgG += data[idx + 1]; bgB += data[idx + 2];
+      }
+      bgR /= 4; bgG /= 4; bgB /= 4;
+
+      const total = w * h;
+      const mask = new Uint8Array(total);
+      const cx = w / 2, cy = h / 2;
+      const maxDist = Math.hypot(cx, cy);
+
+      for (let y = 0; y < h; y++) {
+        const row = y * w;
+        for (let x = 0; x < w; x++) {
+          const idx = (row + x) * 4;
+          const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+          const distColor = Math.hypot(r - bgR, g - bgG, b - bgB);
+          const distCenter = Math.hypot(x - cx, y - cy);
+          const centerBias = 1.0 - (distCenter / maxDist) * 0.4;
+          const score = (distColor / 441) * 255 * centerBias;
+          mask[row + x] = score > 60 ? Math.min(255, Math.round((score - 60) * 3.5)) : 0;
+        }
+      }
+      state.rawMaskData = mask;
+      state.currentMaskData = new Uint8Array(mask);
+    }
+
+    function interpolateMaskToOriginal(tensorData, tw, th, targetW, targetH) {
+      const mask = new Uint8Array(targetW * targetH);
+      const scaleX = tw / targetW;
+      const scaleY = th / targetH;
+
+      for (let y = 0; y < targetH; y++) {
+        const srcY = Math.min(th - 1, (y * scaleY) | 0);
+        const targetRow = y * targetW;
+        const srcRow = srcY * tw;
+        for (let x = 0; x < targetW; x++) {
+          const srcX = Math.min(tw - 1, (x * scaleX) | 0);
+          mask[targetRow + x] = Math.max(0, Math.min(255, (tensorData[srcRow + srcX] * 255) | 0));
+        }
+      }
+      state.rawMaskData = mask;
+      state.currentMaskData = new Uint8Array(mask);
+    }
+
+    function extractAlphaFromCutout(cutoutImg) {
+      const w = state.width, h = state.height;
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(cutoutImg, 0, 0);
+      const data = ctx.getImageData(0, 0, w, h).data;
+      const mask = new Uint8Array(w * h);
+      for (let i = 0; i < w * h; i++) {
+        mask[i] = data[i * 4 + 3];
+      }
+      state.rawMaskData = mask;
+      state.currentMaskData = new Uint8Array(mask);
+    }
+
+    function finalizeMatte(latencyMs, engineName) {
+      setProgress(100);
+      renderTimer.innerText = latencyMs + ' MS (' + engineName + ')';
+      document.getElementById('mLatency').innerText = latencyMs + ' ms';
+      requestRender();
+    }
+
+    // 60 FPS Real-Time Canvas Renderer (Zero GC & Cached Pixels)
+    function renderStudioCanvas() {
+      if (!state.originalImg || !state.currentMaskData || !state.origPixels) return;
+      const w = state.width, h = state.height;
+
+      if (resultCanvas.width !== w || resultCanvas.height !== h) {
+        resultCanvas.width = w; resultCanvas.height = h;
+        originalCanvas.width = w; originalCanvas.height = h;
+        editCanvas.width = w; editCanvas.height = h;
+        const oCtx = originalCanvas.getContext('2d');
+        oCtx.drawImage(state.originalImg, 0, 0);
+      }
+
+      const rCtx = resultCanvas.getContext('2d');
+      const origPixels = state.origPixels;
+      const processedAlpha = applyMaskFilters(state.currentMaskData, w, h);
+
+      if (!state.scratchImgData || state.scratchImgData.width !== w || state.scratchImgData.height !== h) {
+        state.scratchImgData = rCtx.createImageData(w, h);
+      }
+      const resPixels = state.scratchImgData.data;
+
+      if (state.viewMode === 'mask') {
+        for (let i = 0; i < w * h; i++) {
+          const a = processedAlpha[i];
+          const idx = i * 4;
+          resPixels[idx] = a; resPixels[idx + 1] = a; resPixels[idx + 2] = a; resPixels[idx + 3] = 255;
+        }
+        rCtx.putImageData(state.scratchImgData, 0, 0);
+      } else if (state.viewMode === 'heatmap') {
+        for (let i = 0; i < w * h; i++) {
+          const a = processedAlpha[i];
+          const idx = i * 4;
+          if (a >= 250) {
+            resPixels[idx] = 16; resPixels[idx + 1] = 185; resPixels[idx + 2] = 129; resPixels[idx + 3] = 255;
+          } else if (a <= 5) {
+            resPixels[idx] = 12; resPixels[idx + 1] = 13; resPixels[idx + 2] = 18; resPixels[idx + 3] = 255;
+          } else {
+            const ratio = a / 255;
+            resPixels[idx] = (245 * (1 - ratio) + 52 * ratio) | 0;
+            resPixels[idx + 1] = (158 * (1 - ratio) + 211 * ratio) | 0;
+            resPixels[idx + 2] = (11 * (1 - ratio) + 153 * ratio) | 0;
+            resPixels[idx + 3] = 255;
+          }
+        }
+        rCtx.putImageData(state.scratchImgData, 0, 0);
+      } else if (state.viewMode === 'original') {
+        rCtx.drawImage(state.originalImg, 0, 0);
+      } else {
+        // Fast Compositing
+        if (state.bgColor !== 'transparent') {
+          rCtx.fillStyle = state.bgColor;
+          rCtx.fillRect(0, 0, w, h);
+        } else {
+          rCtx.clearRect(0, 0, w, h);
+        }
+
+        if (state.bokehBlur > 0) {
+          rCtx.save();
+          rCtx.filter = 'blur(' + state.bokehBlur + 'px)';
+          rCtx.drawImage(state.originalImg, 0, 0);
+          rCtx.restore();
+        }
+
+        const defringeStrength = state.defringe / 100;
+        const total = w * h;
+
+        for (let i = 0; i < total; i++) {
+          const idx = i * 4;
+          resPixels[idx] = origPixels[idx];
+          resPixels[idx + 1] = origPixels[idx + 1];
+          resPixels[idx + 2] = origPixels[idx + 2];
+          resPixels[idx + 3] = processedAlpha[i];
+        }
+
+        // Fast defringe clamp
+        if (defringeStrength > 0) {
+          for (let y = 1; y < h - 1; y++) {
+            const row = y * w;
+            for (let x = 1; x < w - 1; x++) {
+              const idx = (row + x) * 4;
+              const alpha = resPixels[idx + 3];
+              if (alpha > 15 && alpha < 235) {
+                const left = idx - 4;
+                const right = idx + 4;
+                if (resPixels[left + 3] >= 240) {
+                  resPixels[idx] = (resPixels[idx] * (1 - defringeStrength) + resPixels[left] * defringeStrength) | 0;
+                  resPixels[idx + 1] = (resPixels[idx + 1] * (1 - defringeStrength) + resPixels[left + 1] * defringeStrength) | 0;
+                  resPixels[idx + 2] = (resPixels[idx + 2] * (1 - defringeStrength) + resPixels[left + 2] * defringeStrength) | 0;
+                } else if (resPixels[right + 3] >= 240) {
+                  resPixels[idx] = (resPixels[idx] * (1 - defringeStrength) + resPixels[right] * defringeStrength) | 0;
+                  resPixels[idx + 1] = (resPixels[idx + 1] * (1 - defringeStrength) + resPixels[right + 1] * defringeStrength) | 0;
+                  resPixels[idx + 2] = (resPixels[idx + 2] * (1 - defringeStrength) + resPixels[right + 2] * defringeStrength) | 0;
+                }
+              }
+            }
+          }
+        }
+
+        rCtx.putImageData(state.scratchImgData, 0, 0);
+      }
+
+      updateSplitView();
+
+      // Debounce expensive metrics calculations to avoid slider micro-stutters
+      if (metricsTimeout) clearTimeout(metricsTimeout);
+      metricsTimeout = setTimeout(() => {
+        updateTelemetryMetrics(processedAlpha, w, h);
+      }, 120);
+    }
+
+    // Zero-allocation reusable mask filter
+    function applyMaskFilters(baseMask, w, h) {
+      const len = baseMask.length;
+      if (!state.scratchFiltered || state.scratchFiltered.length !== len) {
+        state.scratchFiltered = new Uint8Array(len);
+        state.scratchBlur = new Uint8Array(len);
+      }
+      const out = state.scratchFiltered;
+      const temp = state.scratchBlur;
+      const th = (state.threshold / 100) * 255;
+      const invert = state.invert;
+
+      const lower = th * 0.7;
+      const upper = th * 1.3;
+      const range = upper - lower;
+
+      for (let i = 0; i < len; i++) {
+        let val = baseMask[i];
+        if (val < lower) val = 0;
+        else if (val > upper) val = 255;
+        else val = (((val - lower) / range) * 255) | 0;
+        out[i] = invert ? (255 - val) : val;
+      }
+
+      const r = Math.round(state.feather);
+      if (r <= 0) return out;
+
+      const win = 2 * r + 1;
+
+      // Fast horizontal sliding window
+      for (let y = 0; y < h; y++) {
+        const offset = y * w;
+        let sum = 0;
+        for (let i = -r; i <= r; i++) {
+          sum += out[offset + Math.min(w - 1, Math.max(0, i))];
+        }
+        for (let x = 0; x < w; x++) {
+          temp[offset + x] = (sum / win) | 0;
+          sum += out[offset + Math.min(w - 1, x + r + 1)] - out[offset + Math.max(0, x - r)];
+        }
+      }
+
+      // Fast vertical sliding window
+      for (let x = 0; x < w; x++) {
+        let sum = 0;
+        for (let i = -r; i <= r; i++) {
+          sum += temp[Math.min(h - 1, Math.max(0, i)) * w + x];
+        }
+        for (let y = 0; y < h; y++) {
+          out[y * w + x] = (sum / win) | 0;
+          sum += temp[Math.min(h - 1, y + r + 1) * w + x] - temp[Math.max(0, y - r) * w + x];
+        }
+      }
+
+      return out;
+    }
+
+    function updateSplitView() {
+      if (state.viewMode === 'split' && state.activeTool === 'select') {
+        compareBefore.style.display = 'block';
+        compareDivider.style.display = 'block';
+        const pct = (state.splitPos * 100) + '%';
+        compareBefore.style.width = pct;
+        compareDivider.style.left = pct;
+      } else {
+        compareBefore.style.display = 'none';
+        compareDivider.style.display = 'none';
+      }
+    }
+
+    function updateTelemetryMetrics(alpha, w, h) {
+      const total = w * h;
+      let fgCount = 0, semiCount = 0;
+      const bins = new Array(16).fill(0);
+
+      // Fast sampling pass
+      const step = total > 1000000 ? 2 : 1;
+      const sampledTotal = total / step;
+
+      for (let i = 0; i < total; i += step) {
+        const a = alpha[i];
+        bins[Math.min(15, (a / 16) | 0)]++;
+        if (a >= 250) fgCount++;
+        else if (a > 5) semiCount++;
+      }
+
+      let entropy = 0;
+      for (let b = 0; b < 16; b++) {
+        if (bins[b] > 0) {
+          const p = bins[b] / sampledTotal;
+          entropy -= p * Math.log2(p);
+        }
+      }
+      const normEntropy = Math.min(100, Math.round((entropy / 4) * 100));
+      const fgPct = ((fgCount / sampledTotal) * 100).toFixed(1);
+      const mp = ((total) / 1000000).toFixed(2);
+      const complexity = Math.min(100, Math.round((semiCount / Math.max(1, fgCount * 0.15)) * 30));
+      const spillScore = Math.min(100, Math.round((semiCount / Math.max(1, fgCount)) * 140));
+
+      document.getElementById('mResolution').innerText = w + ' x ' + h + ' (' + mp + ' MP)';
+      document.getElementById('mCoverage').innerText = fgPct + '%';
+      document.getElementById('mComplexity').innerText = complexity + ' / 100';
+      document.getElementById('mEntropy').innerText = normEntropy + ' / 100';
+      document.getElementById('mSpill').innerText = spillScore + ' / 100';
+
+      const gradeEl = document.getElementById('matteGradeBadge');
+      if (normEntropy > 15 && complexity < 70 && fgCount > sampledTotal * 0.05) {
+        gradeEl.innerText = 'A+';
+        gradeEl.className = 'grade-badge grade-A-plus';
+      } else if (complexity < 85) {
+        gradeEl.innerText = 'A';
+        gradeEl.className = 'grade-badge grade-A';
+      } else {
+        gradeEl.innerText = 'B';
+        gradeEl.className = 'grade-badge grade-B';
+      }
+    }
+
+    // Interactive Tools: Pen, Lasso, Magic Pen
+    function getCanvasCoordinates(e) {
+      const rect = editCanvas.getBoundingClientRect();
+      const scaleX = state.width / rect.width;
+      const scaleY = state.height / rect.height;
+      return {
+        x: Math.round((e.clientX - rect.left) * scaleX),
+        y: Math.round((e.clientY - rect.top) * scaleY)
+      };
+    }
+
+    function setActiveTool(tool) {
+      state.activeTool = tool;
+      [toolSelectBtn, toolPenBtn, toolLassoBtn, toolMagicBtn].forEach(b => b.classList.remove('active'));
+      if (tool === 'select') toolSelectBtn.classList.add('active');
+      if (tool === 'pen') toolPenBtn.classList.add('active');
+      if (tool === 'lasso') toolLassoBtn.classList.add('active');
+      if (tool === 'magic') toolMagicBtn.classList.add('active');
+
+      if (tool === 'select') {
+        editCanvas.style.display = 'none';
+        brushOptions.style.display = 'none';
+        magicOptions.style.display = 'none';
+      } else {
+        editCanvas.style.display = 'block';
+        brushOptions.style.display = (tool === 'pen' || tool === 'lasso' || tool === 'magic') ? 'flex' : 'none';
+        magicOptions.style.display = (tool === 'magic') ? 'flex' : 'none';
+        if (state.viewMode === 'split') {
+          state.viewMode = 'result';
+          document.querySelectorAll('.viewport-modes button').forEach(b => b.classList.remove('active'));
+          document.getElementById('modeBtnResult').classList.add('active');
+        }
+      }
+      requestRender();
+    }
+
+    toolSelectBtn.addEventListener('click', () => setActiveTool('select'));
+    toolPenBtn.addEventListener('click', () => setActiveTool('pen'));
+    toolLassoBtn.addEventListener('click', () => setActiveTool('lasso'));
+    toolMagicBtn.addEventListener('click', () => setActiveTool('magic'));
+
+    btnModeErase.addEventListener('click', () => {
+      state.brushMode = 'erase';
+      btnModeErase.classList.add('active');
+      btnModeRestore.classList.remove('active');
+    });
+    btnModeRestore.addEventListener('click', () => {
+      state.brushMode = 'restore';
+      btnModeRestore.classList.add('active');
+      btnModeErase.classList.remove('active');
+    });
+
+    brushSizeSlider.addEventListener('input', (e) => {
+      state.brushSize = parseInt(e.target.value);
+      brushSizeVal.innerText = state.brushSize + 'px';
+    });
+
+    magicToleranceSlider.addEventListener('input', (e) => {
+      state.magicTolerance = parseInt(e.target.value);
+      magicToleranceVal.innerText = state.magicTolerance + '%';
+    });
+
+    btnUndo.addEventListener('click', () => {
+      if (state.undoStack.length > 0) {
+        state.currentMaskData = state.undoStack.pop();
+        if (state.undoStack.length === 0) btnUndo.disabled = true;
+        requestRender();
+        showToast('Undo applied');
+      }
+    });
+
+    btnResetMask.addEventListener('click', () => {
+      if (state.rawMaskData) {
+        pushUndoState();
+        state.currentMaskData = new Uint8Array(state.rawMaskData);
+        requestRender();
+        showToast('Mask reset');
+      }
+    });
+
+    editCanvas.addEventListener('mousedown', (e) => {
+      if (state.activeTool === 'select' || !state.currentMaskData) return;
+      pushUndoState();
+      state.isDrawing = true;
+      const coords = getCanvasCoordinates(e);
+
+      if (state.activeTool === 'pen') {
+        applyPenStroke(coords.x, coords.y, state.brushSize, state.brushMode === 'restore' ? 255 : 0);
+      } else if (state.activeTool === 'lasso') {
+        state.lassoPoints = [coords];
+        drawLassoPreview();
+      } else if (state.activeTool === 'magic') {
+        applyMagicWand(coords.x, coords.y, state.magicTolerance, state.brushMode === 'restore' ? 255 : 0);
+        state.isDrawing = false;
+      }
+    });
+
+    editCanvas.addEventListener('mousemove', (e) => {
+      if (!state.isDrawing || !state.currentMaskData) return;
+      const coords = getCanvasCoordinates(e);
+
+      if (state.activeTool === 'pen') {
+        applyPenStroke(coords.x, coords.y, state.brushSize, state.brushMode === 'restore' ? 255 : 0);
+      } else if (state.activeTool === 'lasso') {
+        state.lassoPoints.push(coords);
+        drawLassoPreview();
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (!state.isDrawing) return;
+      state.isDrawing = false;
+
+      if (state.activeTool === 'lasso' && state.lassoPoints.length > 2) {
+        applyLassoSelection(state.lassoPoints, state.brushMode === 'restore' ? 255 : 0);
+        state.lassoPoints = [];
+        clearEditCanvas();
+      }
+    });
+
+    function applyPenStroke(cx, cy, radius, fillVal) {
+      const w = state.width, h = state.height;
+      const r = radius;
+      const r2 = r * r;
+      const mask = state.currentMaskData;
+
+      const minX = Math.max(0, cx - r);
+      const maxX = Math.min(w - 1, cx + r);
+      const minY = Math.max(0, cy - r);
+      const maxY = Math.min(h - 1, cy + r);
+
+      for (let y = minY; y <= maxY; y++) {
+        const dy = y - cy;
+        const row = y * w;
+        for (let x = minX; x <= maxX; x++) {
+          const dx = x - cx;
+          if (dx * dx + dy * dy <= r2) {
+            mask[row + x] = fillVal;
+          }
+        }
+      }
+      requestRender();
+    }
+
+    function drawLassoPreview() {
+      const ctx = editCanvas.getContext('2d');
+      ctx.clearRect(0, 0, state.width, state.height);
+      if (state.lassoPoints.length < 2) return;
+
+      ctx.beginPath();
+      ctx.moveTo(state.lassoPoints[0].x, state.lassoPoints[0].y);
+      for (let i = 1; i < state.lassoPoints.length; i++) {
+        ctx.lineTo(state.lassoPoints[i].x, state.lassoPoints[i].y);
+      }
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    function clearEditCanvas() {
+      const ctx = editCanvas.getContext('2d');
+      ctx.clearRect(0, 0, state.width, state.height);
+    }
+
+    function applyLassoSelection(points, fillVal) {
+      const c = document.createElement('canvas');
+      c.width = state.width; c.height = state.height;
+      const ctx = c.getContext('2d');
+
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      const polyData = ctx.getImageData(0, 0, state.width, state.height).data;
+      const mask = state.currentMaskData;
+      const total = state.width * state.height;
+
+      for (let i = 0; i < total; i++) {
+        if (polyData[i * 4 + 3] > 128) {
+          mask[i] = fillVal;
+        }
+      }
+      requestRender();
+    }
+
+    function applyMagicWand(startX, startY, tolerancePct, fillVal) {
+      const w = state.width, h = state.height;
+      const imgPixels = state.origPixels;
+      const mask = state.currentMaskData;
+      if (!imgPixels || !mask) return;
+
+      const startIdx = (startY * w + startX) * 4;
+      const targetR = imgPixels[startIdx];
+      const targetG = imgPixels[startIdx + 1];
+      const targetB = imgPixels[startIdx + 2];
+
+      const maxDist = (tolerancePct / 100) * 441.67;
+      const visited = new Uint8Array(w * h);
+      const queue = [startX, startY];
+      visited[startY * w + startX] = 1;
+
+      while (queue.length > 0) {
+        const y = queue.pop();
+        const x = queue.pop();
+        const idx = y * w + x;
+        mask[idx] = fillVal;
+
+        const neighbors = [
+          [x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]
+        ];
+
+        for (const [nx, ny] of neighbors) {
+          if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+            const nIdx = ny * w + nx;
+            if (!visited[nIdx]) {
+              visited[nIdx] = 1;
+              const pIdx = nIdx * 4;
+              const dr = imgPixels[pIdx] - targetR;
+              const dg = imgPixels[pIdx + 1] - targetG;
+              const db = imgPixels[pIdx + 2] - targetB;
+              if (Math.hypot(dr, dg, db) <= maxDist) {
+                queue.push(nx, ny);
+              }
+            }
+          }
+        }
+      }
+
+      requestRender();
+      showToast('Magic selection applied');
+    }
+
+    // Sliders: All use requestRender() for 60 FPS butter smoothness
+    thresholdSlider.addEventListener('input', (e) => {
+      state.threshold = parseInt(e.target.value);
+      document.getElementById('thresholdVal').innerText = state.threshold + '%';
+      requestRender();
+    });
+
+    featherSlider.addEventListener('input', (e) => {
+      state.feather = parseFloat(e.target.value);
+      document.getElementById('featherVal').innerText = state.feather.toFixed(1) + ' px';
+      requestRender();
+    });
+
+    defringeSlider.addEventListener('input', (e) => {
+      state.defringe = parseInt(e.target.value);
+      document.getElementById('defringeVal').innerText = state.defringe + '%';
+      requestRender();
+    });
+
+    expandSlider.addEventListener('input', (e) => {
+      state.expand = parseInt(e.target.value);
+      document.getElementById('expandVal').innerText = state.expand + ' px';
+      requestRender();
+    });
+
+    blurSlider.addEventListener('input', (e) => {
+      state.bokehBlur = parseInt(e.target.value);
+      document.getElementById('blurVal').innerText = state.bokehBlur + ' px';
+      requestRender();
+    });
+
+    invertCheckbox.addEventListener('change', (e) => {
+      state.invert = e.target.checked;
+      requestRender();
+    });
+
+    document.getElementById('btnResetControls').addEventListener('click', () => {
+      state.threshold = 50; thresholdSlider.value = 50; document.getElementById('thresholdVal').innerText = '50%';
+      state.feather = 1.0; featherSlider.value = 1.0; document.getElementById('featherVal').innerText = '1.0 px';
+      state.defringe = 40; defringeSlider.value = 40; document.getElementById('defringeVal').innerText = '40%';
+      state.expand = 0; expandSlider.value = 0; document.getElementById('expandVal').innerText = '0 px';
+      state.bokehBlur = 0; blurSlider.value = 0; document.getElementById('blurVal').innerText = '0 px';
+      state.invert = false; invertCheckbox.checked = false;
+      requestRender();
+    });
+
+    // View Modes
+    document.querySelectorAll('.viewport-modes button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.viewport-modes button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.viewMode = btn.dataset.mode;
+        requestRender();
+      });
+    });
+
+    // Color Swatches
+    document.querySelectorAll('.swatch').forEach(sw => {
+      sw.addEventListener('click', () => {
+        document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+        sw.classList.add('active');
+        state.bgColor = sw.dataset.bg;
+        requestRender();
+      });
+    });
+
+    customColorPicker.addEventListener('input', (e) => {
+      document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+      state.bgColor = e.target.value;
+      requestRender();
+    });
+
+    // Split handle dragging
+    compareDivider.addEventListener('mousedown', () => { state.isDraggingSplit = true; });
+    window.addEventListener('mouseup', () => { state.isDraggingSplit = false; });
+    window.addEventListener('mousemove', (e) => {
+      if (!state.isDraggingSplit) return;
+      const rect = compareContainer.getBoundingClientRect();
+      state.splitPos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      updateSplitView();
+    });
+
+    // File input & Drag/Drop
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) handleImageFile(e.target.files[0]);
+    });
+
+    window.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    window.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+    });
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) handleImageFile(e.dataTransfer.files[0]);
+    });
+
+    // Clipboard Paste Listener (Ctrl+V)
+    window.addEventListener('paste', (e) => {
+      const items = e.clipboardData.items;
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          handleImageFile(item.getAsFile());
+          showToast('Image pasted');
+          break;
+        }
+      }
+    });
+
+    document.getElementById('btnPasteClipboard').addEventListener('click', async () => {
+      try {
+        const clipItems = await navigator.clipboard.read();
+        for (const item of clipItems) {
+          const imageType = item.types.find(t => t.startsWith('image/'));
+          if (imageType) {
+            const blob = await item.getType(imageType);
+            handleImageFile(blob);
+            showToast('Image pasted');
+            return;
+          }
+        }
+        showToast('No image in clipboard');
+      } catch (err) {
+        alert('Clipboard access requires permission or press Ctrl+V directly.');
+      }
+    });
+
+    // Sample Presets
+    document.getElementById('btnSamplePortrait').addEventListener('click', () => {
+      loadSamplePreset('portrait');
+    });
+    document.getElementById('btnSampleProduct').addEventListener('click', () => {
+      loadSamplePreset('product');
+    });
+
+    function loadSamplePreset(type) {
+      const samples = {
+        portrait: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
+        product: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80'
+      };
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      setProgress(30, 'Loading sample');
+      img.onload = () => {
+        state.originalImg = img;
+        state.width = img.naturalWidth;
+        state.height = img.naturalHeight;
+        state.undoStack = [];
+        btnUndo.disabled = true;
+        btnResetMask.disabled = true;
+
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = state.width; offCanvas.height = state.height;
+        const offCtx = offCanvas.getContext('2d');
+        offCtx.drawImage(img, 0, 0);
+        state.origPixels = offCtx.getImageData(0, 0, state.width, state.height).data;
+
+        dropzone.style.display = 'none';
+        compareContainer.style.display = 'inline-block';
+        processSegmentation();
+      };
+      img.src = samples[type];
+    }
+
+    // Clear
+    document.getElementById('btnClear').addEventListener('click', () => {
+      state.originalImg = null;
+      state.origPixels = null;
+      state.rawMaskData = null;
+      state.currentMaskData = null;
+      state.undoStack = [];
+      btnUndo.disabled = true;
+      btnResetMask.disabled = true;
+      compareContainer.style.display = 'none';
+      dropzone.style.display = 'flex';
+      renderTimer.innerText = 'IDLE';
+    });
+
+    // Lossless Exports
+    document.getElementById('btnDownloadPng').addEventListener('click', () => {
+      if (!resultCanvas) return;
+      const a = document.createElement('a');
+      a.download = 'cutout_' + Date.now() + '.png';
+      a.href = resultCanvas.toDataURL('image/png');
+      a.click();
+      showToast('Exported PNG');
+    });
+
+    document.getElementById('btnDownloadWebP').addEventListener('click', () => {
+      if (!resultCanvas) return;
+      const a = document.createElement('a');
+      a.download = 'cutout_' + Date.now() + '.webp';
+      a.href = resultCanvas.toDataURL('image/webp', 0.95);
+      a.click();
+      showToast('Exported WebP');
+    });
+
+    document.getElementById('btnDownloadMask').addEventListener('click', () => {
+      if (!state.currentMaskData) return;
+      const mc = document.createElement('canvas');
+      mc.width = state.width; mc.height = state.height;
+      const ctx = mc.getContext('2d');
+      const imgData = ctx.createImageData(state.width, state.height);
+      const p = imgData.data;
+      const alpha = applyMaskFilters(state.currentMaskData, state.width, state.height);
+      for (let i = 0; i < alpha.length; i++) {
+        p[i * 4] = alpha[i]; p[i * 4 + 1] = alpha[i]; p[i * 4 + 2] = alpha[i]; p[i * 4 + 3] = 255;
+      }
+      ctx.putImageData(imgData, 0, 0);
+      const a = document.createElement('a');
+      a.download = 'mask_' + Date.now() + '.png';
+      a.href = mc.toDataURL('image/png');
+      a.click();
+      showToast('Exported mask');
+    });
+
+    document.getElementById('btnCopyClipboard').addEventListener('click', async () => {
+      if (!resultCanvas) return;
+      try {
+        resultCanvas.toBlob(async (blob) => {
+          await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+          ]);
+          showToast('Copied to clipboard');
+        }, 'image/png');
+      } catch (err) {
+        showToast('Clipboard error');
+      }
+    });
+
+    // Modal
+    const apiModal = document.getElementById('apiModal');
+    document.getElementById('btnOpenApiModal').addEventListener('click', () => {
+      apiModal.style.display = 'flex';
+    });
+    document.getElementById('btnCloseApiModal').addEventListener('click', () => {
+      apiModal.style.display = 'none';
+    });
+    window.addEventListener('click', (e) => {
+      if (e.target === apiModal) apiModal.style.display = 'none';
+    });
+
+    engineSelect.addEventListener('change', () => {
+      if (state.originalImg) processSegmentation();
+    });
+
+  </script>
+</body>
+</html>

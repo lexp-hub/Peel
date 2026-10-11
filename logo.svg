@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 52" width="160" height="52">
+  <defs>
+    <!-- Transparency checkerboard pattern -->
+    <pattern id="peel-grid" width="8" height="8" patternUnits="userSpaceOnUse">
+      <rect width="4" height="4" fill="#0c0d12"/>
+      <rect x="4" width="4" height="4" fill="#181a24"/>
+      <rect y="4" width="4" height="4" fill="#181a24"/>
+      <rect x="4" y="4" width="4" height="4" fill="#0c0d12"/>
+    </pattern>
+    <linearGradient id="peel-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+  <!-- Background with subtle rounded corners -->
+  <rect width="160" height="52" fill="#13151c" rx="6" stroke="#242735" stroke-width="1.5"/>
+  <!-- Exposed transparency slice under the peeled layer -->
+  <path d="M 12 12 L 40 12 L 28 40 L 12 40 Z" fill="url(#peel-grid)" rx="2"/>
+  <!-- The peeled accent corner tab -->
+  <path d="M 10 10 L 32 10 L 10 32 Z" fill="url(#peel-grad)" opacity="0.9"/>
+  <!-- Brand text -->
+  <text x="88" y="34" fill="#10b981" font-family="'JetBrains Mono', 'Fira Code', ui-monospace, Menlo, Monaco, Consolas, monospace" font-size="24" font-weight="900" letter-spacing="4" text-anchor="middle">PEEL</text>
+  <!-- Dot / accent mark -->
+  <circle cx="136" cy="22" r="3" fill="#34d399"/>
+</svg>
+
