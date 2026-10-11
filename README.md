@@ -32,4 +32,4 @@ For architecture, matting equations, and API documentation, refer to [DOCUMENTAT
 
 ## License
 
-[MIT](LICENSE) &bull; Inspired by [Skew](https://github.com)
+[MIT](LICENSE) &bull; Inspired by [Skew](https://github.com/lexp-hub/Skew)
